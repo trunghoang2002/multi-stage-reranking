@@ -54,7 +54,7 @@ document = \
     {str(dic["_id"]):
         {
             "text":dic["text"],
-            "text_tokenized":tokenizer.convert_tokens_to_ids(tokenizer.tokenize(dic["text"]))
+            "text_tokenized":tokenizer.encode(dic["text"], max_length=512, truncation=True, padding="max_length")
         }
     for dic in tqdm(document)}
 
