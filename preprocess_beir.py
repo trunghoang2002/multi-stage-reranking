@@ -46,7 +46,7 @@ tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
 
 #{"_id":..., "text":...}
 document = []
-with open(document_path)as f:
+with open(document_path, "r", encoding="utf-8")as f:
     for l in f:
         document.append(json.loads(l))
 
@@ -54,19 +54,19 @@ document = \
     {str(dic["_id"]):
         {
             "text":dic["text"],
-            "text_tokenized":tokenizer.encode(dic["text"], max_length=512, truncation=True, padding="max_length") # Same as doing self.convert_tokens_to_ids(self.tokenize(text)) bu with truncation and padding to max_length
+            "text_tokenized":tokenizer.encode(dic["text"])# Same as doing self.convert_tokens_to_ids(self.tokenize(text))
         }
     for dic in tqdm(document)}
 
-with open(document_output_path, "w")as f:
-    json.dump(document, f)
+with open(document_output_path, "w", encoding="utf-8")as f:
+    json.dump(document, f, ensure_ascii=False, indent=4)
 
 
 ######################query##############################
 
 #{"_id":..., "text":...}
 query= []
-with open(query_path)as f:
+with open(query_path, "r", encoding="utf-8")as f:
     for l in f:
         query.append(json.loads(l))
 
@@ -74,12 +74,12 @@ query = \
     {str(dic["_id"]):
         {
             "text":dic["text"],
-            "text_tokenized":tokenizer.encode(dic["text"], max_length=512, truncation=True, padding="max_length")
+            "text_tokenized":tokenizer.encode(dic["text"])
         }
     for dic in tqdm(query)}
 
-with open(query_output_path, "w")as f:
-    json.dump(query, f)
+with open(query_output_path, "w", encoding="utf-8")as f:
+    json.dump(query, f, ensure_ascii=False, indent=4)
 
 ###################qrel###########################
 
@@ -94,8 +94,8 @@ def qrel_process(qrel_path, qrel_output_path):
             if query_id not in qrel_processed:
                 qrel_processed[query_id] = {"positive_doc_id":[]}
             qrel_processed[query_id]["positive_doc_id"].append(doc_id)
-        with open(qrel_output_path, "w")as f:
-            json.dump(qrel_processed, f)
+        with open(qrel_output_path, "w", encoding="utf-8")as f:
+            json.dump(qrel_processed, f, ensure_ascii=False, indent=4)
 
 
 qrel_process(train_qrel_path, train_qrel_output_path)

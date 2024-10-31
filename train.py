@@ -341,13 +341,13 @@ def main():
         gradient_accumulation_steps: {args.gradient_accumulation_steps}")
 
     # Get datasets
-    with open(args.id2doc_path) as f:
+    with open(args.id2doc_path, encoding="utf-8") as f:
         id2doc = json.load(f)
-    with open(args.id2query_path) as f:
+    with open(args.id2query_path, encoding="utf-8") as f:
         id2query=json.load(f)
-    with open(args.train_query2doc_path) as f:
+    with open(args.train_query2doc_path, encoding="utf-8") as f:
         train_query2doc=json.load(f)
-    with open(args.eval_query2doc_path) as f:
+    with open(args.eval_query2doc_path, encoding="utf-8") as f:
         eval_query2doc=json.load(f)
 
     train_dataset = \
@@ -460,6 +460,8 @@ def main():
             preds += outputs.argmax(dim=-1).cpu().numpy().tolist()
             labels += label.cpu().numpy().tolist()
 
+        print("preds:", preds)
+        print("labels:", labels)
         loss = np.average(losses)
         precision = precision_score(labels, preds)
         recall = recall_score(labels, preds)

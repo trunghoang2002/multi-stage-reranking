@@ -42,18 +42,18 @@ os.makedirs(f"{args.output_data_path}/qrels", exist_ok=True)
 
 ####################index##################################
 
-with open(document_path)as f:
+with open(document_path, encoding="utf-8")as f:
     document = json.load(f)
 
-with open(query_path)as f:
+with open(query_path, encoding="utf-8")as f:
     query = json.load(f)
 
 document_processed = [
     {"id": doc_id, "contents": value["text"]} for doc_id, value in document.items()
 ]
 
-with open(f"{document_processed_path}/document_processed.json", "w")as f:
-    json.dump(document_processed, f)
+with open(f"{document_processed_path}/document_processed.json", "w", encoding="utf-8")as f:
+    json.dump(document_processed, f, ensure_ascii=False, indent=4)
 
 subprocess.run(
     f"""
@@ -90,8 +90,8 @@ def qrel_process(qrel_path, qrel_output_path):
                 [doc_id for _, doc_id in bm25_score_list]
             qrel[query_id]["bm25_doc_id"] = bm25_doc_id
 
-        with open(qrel_output_path, "w")as f:
-            json.dump(qrel, f)
+        with open(qrel_output_path, "w", encoding="utf-8")as f:
+            json.dump(qrel, f, ensure_ascii=False, indent=4)
 
 
 qrel_process(train_qrel_path, train_qrel_output_path)
