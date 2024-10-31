@@ -335,6 +335,87 @@ def get_mrr_score(y_true, y_pred):
         return 1/(index+1)
     except ValueError:
         return 0
+    
+def calculate_mrr(true_dict, pred_dict, k=10):
+    mrr_scores = []
+
+    for query_id in true_dict:
+        relevant_docs = {doc_id for doc_id, is_relevant in true_dict[query_id].items() if is_relevant}
+        retrieved_docs = list(pred_dict[query_id].keys())
+
+        # Tìm thứ hạng của tài liệu liên quan đầu tiên trong k tài liệu đầu tiên
+        rank = None
+        for i, doc in enumerate(retrieved_docs[:k]):
+            if doc in relevant_docs:
+                rank = i + 1  # Thứ hạng bắt đầu từ 1
+                break
+        
+        # Nếu không có tài liệu nào liên quan, sử dụng 0
+        if rank is not None:
+            mrr_scores.append(1 / rank)
+        else:
+            mrr_scores.append(0)
+    
+    # Tính MRR
+    return sum(mrr_scores) / len(mrr_scores) if mrr_scores else 0
+
+def calculate_my_recall(true_dict, pred_dict, k=10):
+    recall_scores = []
+
+    for query_id in true_dict:
+        # Lấy danh sách tài liệu liên quan
+        relevant_docs = list({doc_id for doc_id, is_relevant in true_dict[query_id].items() if is_relevant})
+        
+        # Lấy danh sách tài liệu được trả về
+        retrieved_docs = list(pred_dict[query_id].keys())
+
+        # Đếm số lượng tài liệu liên quan trong k tài liệu đầu tiên
+        count_retrieval = sum(1 for doc in retrieved_docs[:k] if doc in relevant_docs)
+        
+        # Tính recall: số lượng tài liệu liên quan đã truy xuất / tổng số tài liệu liên quan
+        score = count_retrieval / len(relevant_docs[:k]) if relevant_docs else 0
+        recall_scores.append(score)
+
+    # Trả về recall trung bình cho tất cả các truy vấn
+    return sum(recall_scores) / len(recall_scores) if recall_scores else 0
+
+def calculate_my_recall_at_k(true_dict, pred_dict, k):
+    # Lấy k tài liệu đầu tiên trong retrieved_docs
+    retrieved_docs_at_k = list(pred_dict[query_id].keys())[:k]
+    
+    # Số tài liệu liên quan được tìm thấy trong retrieved_docs_at_k
+    relevant_docs = {doc_id for doc_id, is_relevant in true_dict[query_id].items() if is_relevant}
+    retrieved_relevant_docs_at_k = len(set(retrieved_docs_at_k) & relevant_docs)
+    
+    # Tổng số tài liệu liên quan trong bộ dữ liệu
+    total_relevant_docs = len(relevant_docs)
+    
+    # Tính toán recall@k
+    my_recall_at_k = retrieved_relevant_docs_at_k / total_relevant_docs if total_relevant_docs > 0 else 0
+    return my_recall_at_k
+
+def calculate_map(true_dict, pred_dict, k=10):
+    ap_scores = []
+
+    for query_id in true_dict:
+        relevant_docs = {doc_id for doc_id, is_relevant in true_dict[query_id].items() if is_relevant}
+        retrieved_docs = list(pred_dict[query_id].keys())
+
+        num_relevant_retrieved = 0
+        precision_sum = 0
+        
+        for i, doc in enumerate(retrieved_docs[:k]):
+            if doc in relevant_docs:
+                num_relevant_retrieved += 1
+                precision_at_i = num_relevant_retrieved / (i + 1)
+                precision_sum += precision_at_i
+        
+        # Tính Average Precision (AP)
+        ap = precision_sum / len(relevant_docs) if relevant_docs else 0
+        ap_scores.append(ap)
+
+    # Tính MAP
+    return sum(ap_scores) / len(ap_scores) if ap_scores else 0
 
 
 parser = argparse.ArgumentParser()
@@ -381,11 +462,11 @@ set_seed(args.seed)
 
 
 # Get datasets
-with open(args.id2doc_path) as f:
+with open(args.id2doc_path, encoding="utf-8") as f:
     id2doc = json.load(f)
-with open(args.id2query_path) as f:
+with open(args.id2query_path, encoding="utf-8") as f:
     id2query=json.load(f)
-with open(args.eval_query2doc_path) as f:
+with open(args.eval_query2doc_path, encoding="utf-8") as f:
     eval_query2doc=json.load(f)
 
 all_doc_id = sorted(list(set(id2doc.keys())))
@@ -394,11 +475,12 @@ predictor=ScorePredictor(args, id2doc, id2query)
 
 recall_1_list = []
 recall_3_list = []
+recall_5_list = []
 recall_10_list = []
 recall_100_list = []
-mrr_list = []
-map_list = []
+recall_200_list = []
 ndcg_10_list = []
+ndcg_cut_10_list = []
 
 true_dict = {}
 pred_dict = {}
@@ -428,7 +510,8 @@ end_time = time.time()
 evaluator = pytrec_eval.RelevanceEvaluator(
     true_dict,
     {
-        "recall.1,3,10,100",
+        "recall.1,3,5,10,100,200",
+        "ndcg",
         "ndcg_cut.10",
     })
 score=evaluator.evaluate(pred_dict)
@@ -436,13 +519,27 @@ score=evaluator.evaluate(pred_dict)
 for query_id, score_dict in score.items():
     recall_1_list.append(score_dict[f"recall_1"])
     recall_3_list.append(score_dict[f"recall_3"])
+    recall_5_list.append(score_dict[f"recall_5"])
     recall_10_list.append(score_dict[f"recall_10"])
     recall_100_list.append(score_dict[f"recall_100"])
-    ndcg_10_list.append(score_dict[f"ndcg_cut_10"])
+    recall_200_list.append(score_dict[f"recall_200"])
+    ndcg_10_list.append(score_dict[f"ndcg"])
+    ndcg_cut_10_list.append(score_dict[f"ndcg_cut_10"])
 
 print(f"search size:{len(recall_1_list)}, search time:{(end_time-start_time)/len(recall_1_list)}")
 print(f"recall@1: {np.average(recall_1_list)}")
+print(f"my_recall@1: {calculate_my_recall(true_dict, pred_dict, k=1)}")
 print(f"recall@3: {np.average(recall_3_list)}")
+print(f"my_recall@3: {calculate_my_recall(true_dict, pred_dict, k=3)}")
+print(f"recall@5: {np.average(recall_5_list)}")
+print(f"my_recall@5: {calculate_my_recall(true_dict, pred_dict, k=5)}")
 print(f"recall@10: {np.average(recall_10_list)}")
+print(f"my_recall@10: {calculate_my_recall(true_dict, pred_dict, k=10)}")
 print(f"recall@100: {np.average(recall_100_list)}")
-print(f"NDCG@10: {np.average(ndcg_10_list)}")
+print(f"my_recall@100: {calculate_my_recall(true_dict, pred_dict, k=100)}")
+print(f"recall@200: {np.average(recall_200_list)}")
+print(f"my_recall@200: {calculate_my_recall(true_dict, pred_dict, k=200)}")
+print(f"NDCG: {np.average(ndcg_10_list)}")
+print(f"NDCG_cut@10: {np.average(ndcg_cut_10_list)}")
+print(f"mrr@10: {calculate_mrr(true_dict, pred_dict, k=10)}")
+print(f"map@10: {calculate_map(true_dict, pred_dict, k=10)}")

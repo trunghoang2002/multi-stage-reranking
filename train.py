@@ -102,37 +102,44 @@ class TextDataset(Dataset):
             elif self.negative_doc_cand_type == "bm25":
                 negative_doc_id_cand = doc_id_items["bm25_doc_id"]
             elif self.negative_doc_cand_type == "all_bm25":
+                # Randomly select between `all` and `bm25`
                 if random.random()<0.5:
                     negative_doc_id_cand = self.doc_id_list
                 else:
                     negative_doc_id_cand = doc_id_items["bm25_doc_id"]
 
+             # Skip if not enough negative samples are available
             if len(negative_doc_id_cand)<self.num_negative_sample:
                 continue
 
             #for one query, one positive answer and num_negative_sample answer are extracted
+            # Option 1: Randomly sample one positive document each epoch
             positive_doc_id = random.sample(positive_doc_id_cand, 1)
+            # Option 2: Use all positive documents for this query (can increase examples per epoch)
             negative_doc_id = []
 
             #select negative_id for randomly, and if it is positive_id, continue the for loop.
             #this is continued until it extracts necessary negative_id.
-            for _ in range(100):
-                doc_id_cand = random.sample(negative_doc_id_cand, 1)[0]
+            attempts = 0
+            while len(negative_doc_id) < self.num_negative_sample and attempts < 100:
+                doc_id_cand = random.choice(negative_doc_id_cand)
                 if doc_id_cand not in positive_doc_id_cand + negative_doc_id:
                     negative_doc_id.append(doc_id_cand)
-                    if len(negative_doc_id)==self.num_negative_sample:
-                        break
+                attempts += 1
+            
             if len(negative_doc_id)!=self.num_negative_sample:
-                print("cannot find nengative_doc_id")
+                print("Cannot find enough unique negative documents.")
                 print(positive_doc_id, negative_doc_id)
                 exit()
 
             if self.task_type == "classification":
+                # For classification, create pairs of (query, doc, label)
                 pair = \
                     [(query_id, doc_id, 1) for doc_id in positive_doc_id] + \
                     [(query_id, doc_id, 0) for doc_id in negative_doc_id]
 
                 for query_id, doc_id, label in pair:
+                    # Tokenize and pad the text
                     text = \
                         self.id2query[query_id]["text_tokenized"] + \
                         [self.sep_token_id] + \
@@ -140,6 +147,7 @@ class TextDataset(Dataset):
                     text = text[:self.source_block_size-2]
                     pad_size = self.source_block_size - 2 - len(text)
 
+                    # Add special tokens and padding
                     text = \
                         [self.bos_token_id] + \
                         text + \
@@ -150,8 +158,7 @@ class TextDataset(Dataset):
                         [1] * (self.source_block_size - pad_size) + \
                         [0] * pad_size
 
-                    label = label
-
+                    # Append to epoch examples
                     self.epoch_examples.append(
                         {
                             "text": text,
@@ -161,6 +168,7 @@ class TextDataset(Dataset):
                     )
 
             elif self.task_type == "pairwise":
+                # For pairwise, create pairs of (query, doc1, doc2, label)
                 pair = \
                     [(query_id, positive_doc_id[0], doc_id, 0) for doc_id in negative_doc_id] + \
                     [(query_id, doc_id, positive_doc_id[0], 1) for doc_id in negative_doc_id]
@@ -171,17 +179,15 @@ class TextDataset(Dataset):
                     doc_text_tokenized1 = self.id2doc[doc_id1]["text_tokenized"]
                     doc_text_tokenized2 = self.id2doc[doc_id2]["text_tokenized"]
 
-                    length_size = \
-                        len(query_text_tokenized) + \
-                        len(doc_text_tokenized1) + \
-                        len(doc_text_tokenized2) + \
-                        1 + 1
-                    over_size = length_size + 2 - self.source_block_size
-                    if over_size>0:
-                        doc_text_tokenized1 = doc_text_tokenized1[:-int((over_size+1)/2)]
-                        doc_text_tokenized2 = doc_text_tokenized2[:-int((over_size+1)/2)]
+                    # Adjust document lengths if total length exceeds limit
+                    total_length = len(query_text_tokenized) + len(doc_text_tokenized1) + \
+                                len(doc_text_tokenized2) + 2
+                    if total_length + 2 > self.source_block_size:
+                        excess_length = total_length + 2 - self.source_block_size
+                        doc_text_tokenized1 = doc_text_tokenized1[:-excess_length // 2]
+                        doc_text_tokenized2 = doc_text_tokenized2[:-excess_length // 2]
 
-
+                    # Combine and pad text
                     text = \
                         query_text_tokenized + \
                         [self.sep_token_id] + \
@@ -191,6 +197,7 @@ class TextDataset(Dataset):
                     text = text[:self.source_block_size-2]
                     pad_size = self.source_block_size - 2 - len(text)
 
+                    # Add special tokens and padding
                     text = \
                         [self.bos_token_id] + \
                         text + \
@@ -201,8 +208,7 @@ class TextDataset(Dataset):
                         [1] * (self.source_block_size - pad_size) + \
                         [0] * pad_size
 
-                    label = label
-
+                    # Append to epoch examples
                     self.epoch_examples.append(
                         {
                             "text": text,
@@ -236,6 +242,7 @@ def main():
     parser.add_argument("--output_dir", type=str, default="./model/fine_tuned_models/tmp", help="output dir")
     parser.add_argument("--do_train", action="store_true", help="do training")
     parser.add_argument("--do_eval", action="store_true", help="do evaluation")
+    parser.add_argument("--do_test", action="store_true", help="do testing")
     parser.add_argument("--do_generate", action="store_true", help="do generation of the sample texts")
     parser.add_argument("--per_device_train_batch_size", type=int, default=8, help="train batch size")
     parser.add_argument("--per_device_eval_batch_size", type=int, default=8, help="eval and batch size")
@@ -479,16 +486,58 @@ def main():
             for key in sorted(result.keys()):
                 logger.info("  {} = {}".format(key, str(result[key])))
                 writer.write("{} = {}\n".format(key, str(result[key])))
+    
+    def test(epoch=None):
+        model.eval()
+
+        losses = []
+        preds = []
+        labels = []
+        for step, batch in tqdm(enumerate(eval_dataloader), total=len(eval_dataloader)):
+            with torch.no_grad():
+                text = batch["text"].to(args.device)
+                label = batch["label"].to(args.device)
+                attention_mask = batch["attention_mask"].to(args.device)
+                outputs=model(input_ids=text, attention_mask = attention_mask)[0]
+
+            losses.append(loss_fct(outputs, label).item())
+            preds += outputs.argmax(dim=-1).cpu().numpy().tolist()
+            labels += label.cpu().numpy().tolist()
+
+        print("preds:", preds)
+        print("labels:", labels)
+        loss = np.average(losses)
+        precision = precision_score(labels, preds)
+        recall = recall_score(labels, preds)
+        f1 = f1_score(labels, preds)
+        accuracy = accuracy_score(labels, preds)
+        result = {
+            "precision":precision, "recall":recall, "f1": f1,
+            "accuracy": accuracy, "loss": loss
+        }
+
+        output_eval_file = os.path.join(args.output_dir, "test_results.txt")
+        with open(output_eval_file, "a") as writer:
+            logger.info("***** Test results *****")
+            writer.write("***** Test results: Epoch {} *****\n".format(epoch))
+            for key in sorted(result.keys()):
+                logger.info("  {} = {}".format(key, str(result[key])))
+                writer.write("{} = {}\n".format(key, str(result[key])))
 
     # Training
     if args.do_train:
         logger.info("*** Train ***")
         train()
 
-    # Training
+    # Validation
     if args.do_eval:
         logger.info("*** Eval ***")
         evaluate()
+
+    # Testing
+    if args.do_test:
+        logger.info("*** Test ***")
+        test()
 
     #save the model
     if args.do_train and args.output_dir is not None:
