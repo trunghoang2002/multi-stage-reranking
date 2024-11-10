@@ -282,6 +282,8 @@ if __name__ == "__main__":
     recall3 = calculate_recall(true_dict, pred_dict, 3)
     recall5 = calculate_recall(true_dict, pred_dict, 5)
     recall10 = calculate_recall(true_dict, pred_dict, 10)
+    recall20 = calculate_recall(true_dict, pred_dict, 20)
+    recall50 = calculate_recall(true_dict, pred_dict, 50)
     recall100 = calculate_recall(true_dict, pred_dict, 100)
     recall200 = calculate_recall(true_dict, pred_dict, 200)
 
@@ -289,6 +291,8 @@ if __name__ == "__main__":
     myrecall3 = calculate_myrecall(true_dict, pred_dict, 3)
     myrecall5 = calculate_myrecall(true_dict, pred_dict, 5)
     myrecall10 = calculate_myrecall(true_dict, pred_dict, 10)
+    myrecall20 = calculate_myrecall(true_dict, pred_dict, 20)
+    myrecall50 = calculate_myrecall(true_dict, pred_dict, 50)
     myrecall100 = calculate_myrecall(true_dict, pred_dict, 100)
     myrecall200 = calculate_myrecall(true_dict, pred_dict, 200)
 
@@ -300,5 +304,7 @@ if __name__ == "__main__":
     print(f"Recall@3: {recall3:.4f}\t\tMy_recall@3: {myrecall3:.4f}")
     print(f"Recall@5: {recall5:.4f}\t\tMy_recall@5: {myrecall5:.4f}")
     print(f"Recall@10: {recall10:.4f}\t\tMy_recall@10: {myrecall10:.4f}")
+    print(f"Recall@20: {recall20:.4f}\t\tMy_recall@20: {myrecall20:.4f}")
+    print(f"Recall@50: {recall50:.4f}\t\tMy_recall@50: {myrecall50:.4f}")
     print(f"Recall@100: {recall100:.4f}\t\tMy_recall@100: {myrecall100:.4f}")
     print(f"Recall@200: {recall200:.4f}\t\tMy_recall@200: {myrecall200:.4f}")

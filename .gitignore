@@ -1,3 +1,4 @@
 dataset/
 model/
 !**/eval_results.txt
+!**/test_results.txt
