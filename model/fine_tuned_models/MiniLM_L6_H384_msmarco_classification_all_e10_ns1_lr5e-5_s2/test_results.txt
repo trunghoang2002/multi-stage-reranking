@@ -1,0 +1,6 @@
+***** Test results: Epoch None *****
+accuracy = 0.993
+f1 = 0.982420894023104
+loss = 0.03177968412442445
+precision = 0.9868819374369324
+recall = 0.978

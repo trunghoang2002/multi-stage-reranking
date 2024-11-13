@@ -1,4 +1,6 @@
 dataset/
-model/
-!**/eval_results.txt
-!**/test_results.txt
+model/fine_tuned_models/**/*.json
+model/fine_tuned_models/**/*.model
+model/fine_tuned_models/**/*.safetensors
+model/fine_tuned_models/**/merges.txt
+model/pre_trained_models/**/*.bin

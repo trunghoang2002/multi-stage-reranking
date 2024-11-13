@@ -1,0 +1,60 @@
+***** Eval results: Epoch 0 *****
+accuracy = 0.9862
+f1 = 0.9661930426261637
+loss = 0.047658788046975153
+precision = 0.94716618635927
+recall = 0.986
+***** Eval results: Epoch 1 *****
+accuracy = 0.9906
+f1 = 0.9766052762568442
+loss = 0.03454853837436345
+precision = 0.9722497522299306
+recall = 0.981
+***** Eval results: Epoch 2 *****
+accuracy = 0.9818
+f1 = 0.9561868078960039
+loss = 0.050633723242803456
+precision = 0.9220055710306406
+recall = 0.993
+***** Eval results: Epoch 3 *****
+accuracy = 0.9924
+f1 = 0.9809428284854563
+loss = 0.025706346124260367
+precision = 0.9839034205231388
+recall = 0.978
+***** Eval results: Epoch 4 *****
+accuracy = 0.9918
+f1 = 0.9796526054590571
+loss = 0.026106601441223263
+precision = 0.9724137931034482
+recall = 0.987
+***** Eval results: Epoch 5 *****
+accuracy = 0.992
+f1 = 0.9801192842942346
+loss = 0.028739369305353923
+precision = 0.974308300395257
+recall = 0.986
+***** Eval results: Epoch 6 *****
+accuracy = 0.9916
+f1 = 0.9788092835519677
+loss = 0.02946284861415818
+precision = 0.9877800407331976
+recall = 0.97
+***** Eval results: Epoch 7 *****
+accuracy = 0.9924
+f1 = 0.9809236947791165
+loss = 0.02531605292851412
+precision = 0.9848790322580645
+recall = 0.977
+***** Eval results: Epoch 8 *****
+accuracy = 0.9918
+f1 = 0.9793866264454499
+loss = 0.030552787995016123
+precision = 0.9848331648129424
+recall = 0.974
+***** Eval results: Epoch 9 *****
+accuracy = 0.9924
+f1 = 0.9809045226130654
+loss = 0.027898333110493615
+precision = 0.9858585858585859
+recall = 0.976
