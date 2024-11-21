@@ -138,7 +138,7 @@ def calculate_mrr(true_dict, pred_dict, k=10):
     for query_id in true_dict:
         relevant_docs = {doc_id for doc_id, is_relevant in true_dict[query_id].items() if is_relevant}
         top_k_results = dict(sorted(pred_dict[query_id].items(), key=lambda item: item[1], reverse=True)[:k])
-        retrieved_docs = [doc_id for doc_id, score in top_k_results.items()]
+        retrieved_docs = [doc_id for doc_id, score in top_k_results.items()] # list(top_k_results.keys())
 
         # Find the rank of the first relevant document in the top k retrieved documents
         rank = None
@@ -160,7 +160,7 @@ def calculate_recall(true_dict, pred_dict, k=10):
     for query_id in true_dict:
         relevant_docs = {doc_id for doc_id, is_relevant in true_dict[query_id].items() if is_relevant}
         top_k_results = dict(sorted(pred_dict[query_id].items(), key=lambda item: item[1], reverse=True)[:k])
-        retrieved_docs = [doc_id for doc_id, score in top_k_results.items()]
+        retrieved_docs = [doc_id for doc_id, score in top_k_results.items()] # list(top_k_results.keys())
 
         # Count relevant documents in the top k retrieved documents
         count_retrieval = sum(1 for doc in retrieved_docs if doc in relevant_docs)
@@ -174,7 +174,7 @@ def calculate_myrecall(true_dict, pred_dict, k=10):
     for query_id in true_dict:
         relevant_docs = {doc_id for doc_id, is_relevant in true_dict[query_id].items() if is_relevant}
         top_k_results = dict(sorted(pred_dict[query_id].items(), key=lambda item: item[1], reverse=True)[:k])
-        retrieved_docs = [doc_id for doc_id, score in top_k_results.items()]
+        retrieved_docs = [doc_id for doc_id, score in top_k_results.items()] # list(top_k_results.keys())
 
         # Count relevant documents in the top k retrieved documents
         count_retrieval = sum(1 for doc in retrieved_docs if doc in relevant_docs)
@@ -188,7 +188,7 @@ def calculate_map(true_dict, pred_dict, k=10):
     for query_id in true_dict:
         relevant_docs = {doc_id for doc_id, is_relevant in true_dict[query_id].items() if is_relevant}
         top_k_results = dict(sorted(pred_dict[query_id].items(), key=lambda item: item[1], reverse=True)[:k])
-        retrieved_docs = [doc_id for doc_id, score in top_k_results.items()]
+        retrieved_docs = [doc_id for doc_id, score in top_k_results.items()] # list(top_k_results.keys())
 
         num_relevant_retrieved = 0
         precision_sum = 0
@@ -204,6 +204,34 @@ def calculate_map(true_dict, pred_dict, k=10):
 
 
     return sum(ap_scores) / len(ap_scores) if ap_scores else 0
+
+def calculate_ndcg(true_dict, pred_dict, k=10):
+    ndcg_scores = []
+
+    for query_id in true_dict:
+        # Tập hợp độ liên quan của các tài liệu
+        relevant_scores = true_dict[query_id]
+        
+        # Danh sách tài liệu dự đoán theo điểm số giảm dần
+        top_k_results = dict(sorted(pred_dict[query_id].items(), key=lambda item: item[1], reverse=True)[:k])
+        retrieved_docs = list(top_k_results.keys())
+
+        # Tính DCG@k
+        dcg = 0
+        for i, doc in enumerate(retrieved_docs):
+            relevance = relevant_scores.get(doc, 0)
+            dcg += relevance / (np.log2(i + 2))  # log2(i + 2) vì index bắt đầu từ 0
+
+        # Tính iDCG@k
+        ideal_relevances = sorted(relevant_scores.values(), reverse=True)[:k]
+        idcg = sum(rel / np.log2(i + 2) for i, rel in enumerate(ideal_relevances))
+
+        # Tính NDCG@k
+        ndcg = dcg / idcg if idcg > 0 else 0
+        ndcg_scores.append(ndcg)
+
+    # Trả về giá trị trung bình NDCG@k
+    return sum(ndcg_scores) / len(ndcg_scores) if ndcg_scores else 0
 
 parser = argparse.ArgumentParser()
 
@@ -277,6 +305,7 @@ if __name__ == "__main__":
 
     mrr = calculate_mrr(true_dict, pred_dict)
     map_score = calculate_map(true_dict, pred_dict)
+    ndcg_score = calculate_ndcg(true_dict, pred_dict)
 
     recall1 = calculate_recall(true_dict, pred_dict, 1)
     recall3 = calculate_recall(true_dict, pred_dict, 3)
@@ -299,6 +328,7 @@ if __name__ == "__main__":
     print(f"Search time:{end_time-start_time}")
     print(f"MRR@10: {mrr:.4f}")
     print(f"MAP@10: {map_score:.4f}")
+    print(f"nDCG@10: {ndcg_score:.4f}")
 
     print(f"Recall@1: {recall1:.4f}\t\tMy_recall@1: {myrecall1:.4f}")
     print(f"Recall@3: {recall3:.4f}\t\tMy_recall@3: {myrecall3:.4f}")
